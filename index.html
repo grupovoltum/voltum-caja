@@ -1125,7 +1125,7 @@ function renderRetiros(){
       '<td><span class="badge '+(colores[r.socio]||'otro')+'">'+r.socio+'</span></td>'+
       '<td>'+r.concepto+'</td>'+
       '<td style="text-align:right;font-family:monospace" class="neg">'+fmt(r.importe)+'</td>'+
-      '<td><button class="btn sm danger" onclick="eliminarRetiro('+r.id+')">x</button></td>'+
+      '<td><button class="btn sm danger" onclick="eliminarRetiro(\''+r.id+'\')">x</button></td>'+
     '</tr>';
   });
   tbody.innerHTML=html;
