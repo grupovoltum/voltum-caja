@@ -730,8 +730,7 @@ function renderPlanilla(){
   const tbody=document.getElementById('tbody-planilla'),tfoot=document.getElementById('tfoot-planilla');
   if(!movimientos.length){tbody.innerHTML='<tr><td colspan="9" class="empty" style="background:#fff">Sin datos</td></tr>';tfoot.innerHTML='';return;}
   let acum=0,tIng=0,tEgr=0;
-  const planLista=[...movimientos].reverse();
-  tbody.innerHTML=planLista.map((m,i)=>{
+  tbody.innerHTML=movimientos.map((m,i)=>{
     const cli=clientes.find(c=>c.id==m.clienteId),obra=obras.find(o=>o.id==m.obraId);
     const pos=esPos(m.tipo),ing=pos?m.importe:0,egr=!pos?m.importe:0;
     acum+=pos?m.importe:-m.importe;tIng+=ing;tEgr+=egr;
@@ -942,7 +941,7 @@ function verCCObra(obraId){
     </tr>`;
   }).join('');
   wrap.innerHTML=`
-    <button class="back-btn" onclick="${cli?'verCCCliente('+cli.id+')':'renderCCNav()'}">← Volver a ${cli?cli.nombre:'clientes'}</button>
+    <button class="back-btn" onclick="${cli?'verCCCliente('\''+cli.id+'\'')':'renderCCNav()'}">← Volver a ${cli?cli.nombre:'clientes'}</button>
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:16px">
       <div>
         ${cli?`<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${cli.nombre}</div>`:''}
