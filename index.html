@@ -815,7 +815,7 @@ function obraCard(o, clickable){
   return`<div ${clickAttr}>
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
       <div>
-        <div style="font-weight:500;font-size:14px;margin-bottom:4px">${o.nombre}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-weight:500;font-size:14px">${o.nombre}</span><button class="btn sm" style="padding:1px 6px;height:auto;font-size:10px" onclick="event.stopPropagation();editarNombreObra('${o.id}')" title="Modificar el nombre de la obra">✎</button></div>
         <span class="badge ${o.estado}">${o.estado}</span>
         ${o.inicio?`<span style="font-size:11px;color:var(--text3);margin-left:6px">desde ${fmtDate(o.inicio)}</span>`:''}
       </div>
@@ -1330,6 +1330,18 @@ window.addEventListener('load', function(){
     if(isNaN(nuevo)||nuevo<0){alert('Valor invalido. Poné un numero, por ejemplo 150000');return;}
     db.collection('obras').doc(String(id)).set({valor:nuevo},{merge:true})
       .then(function(){toast('Precio actualizado: '+fmt(nuevo));})
+      .catch(function(e){toast('Error: '+e.message,false);});
+  };
+
+  window.editarNombreObra = function(id){
+    var o=obras.find(function(x){return x.id==id;});
+    if(!o){toast('Obra no encontrada',false);return;}
+    var resp=prompt('Nuevo nombre de la obra.\n\nNombre actual: "'+o.nombre+'"\n\nEscribí el nombre exacto que quieras usar (conviene que coincida con el de las otras apps).',o.nombre);
+    if(resp===null)return;
+    var nuevo=resp.trim();
+    if(!nuevo){alert('El nombre no puede quedar vacío.');return;}
+    db.collection('obras').doc(String(id)).set({nombre:nuevo},{merge:true})
+      .then(function(){toast('Nombre actualizado');})
       .catch(function(e){toast('Error: '+e.message,false);});
   };
 
