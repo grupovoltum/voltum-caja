@@ -700,12 +700,18 @@ function renderMovimientos(){
   const tbody=document.getElementById('tbody-movimientos');
   if(!lista.length){tbody.innerHTML='<tr><td colspan="10" class="empty">Sin movimientos registrados</td></tr>';return;}
   let acum=0;
-  tbody.innerHTML=lista.map((m,i)=>{
+  const filas=lista.map((m)=>{
+    const pos=esPos(m.tipo);
+    acum+=pos?m.importe:-m.importe;
+    return{m:m,acum:acum};
+  });
+  filas.reverse();
+  tbody.innerHTML=filas.map((f,i)=>{
+    const m=f.m,acum=f.acum;
     const cli=clientes.find(c=>c.id==m.clienteId);
     const obra=obras.find(o=>o.id==m.obraId);
     const pos=esPos(m.tipo);
     const ing=pos?m.importe:0,egr=!pos?m.importe:0;
-    acum+=pos?m.importe:-m.importe;
     return`<tr>
       <td style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${i+1}</td>
       <td class="mono">${fmtDate(m.fecha)}</td>
