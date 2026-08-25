@@ -826,6 +826,7 @@ function obraCard(o, clickable){
       <div>
         <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-family:'DM Mono',monospace">Valor obra</div>
         <div style="font-weight:600;font-family:'DM Mono',monospace;font-size:12px;color:var(--blue)">${o.valor>0?fmt(o.valor):'—'}</div>
+        <button class="btn sm" style="margin-top:5px;padding:2px 8px;height:auto;font-size:10px" onclick="event.stopPropagation();editarPrecioObra('${o.id}')" title="Modificar el precio de la obra">✎ Editar</button>
       </div>
       <div>
         <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-family:'DM Mono',monospace">Cobrado</div>
@@ -1316,6 +1317,20 @@ window.addEventListener('load', function(){
     if(!confirm('Eliminar esta obra?'))return;
     db.collection('obras').doc(String(id)).delete()
       .then(function(){toast('Obra eliminada');}).catch(function(e){toast('Error: '+e.message,false);});
+  };
+
+  window.editarPrecioObra = function(id){
+    var o=obras.find(function(x){return x.id==id;});
+    if(!o){toast('Obra no encontrada',false);return;}
+    var actual=o.valor||0;
+    var resp=prompt('Nuevo valor total de la obra:\n"'+o.nombre+'"\n\nValor actual: '+fmt(actual)+'\n\nEscribí el nuevo precio total (por agregados o descuentos).\nUsá solo numeros, sin puntos de mil. Ej: 150000',actual);
+    if(resp===null)return;
+    resp=String(resp).trim().replace(/\./g,'').replace(',','.');
+    var nuevo=parseFloat(resp);
+    if(isNaN(nuevo)||nuevo<0){alert('Valor invalido. Poné un numero, por ejemplo 150000');return;}
+    db.collection('obras').doc(String(id)).set({valor:nuevo},{merge:true})
+      .then(function(){toast('Precio actualizado: '+fmt(nuevo));})
+      .catch(function(e){toast('Error: '+e.message,false);});
   };
 
   window.agregarRetiro = function(){
