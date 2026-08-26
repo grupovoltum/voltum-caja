@@ -468,6 +468,7 @@
 
   <!-- OBRAS -->
   <div id="sec-obras" class="section">
+    <div id="presus-pendientes"></div>
     <div class="card">
       <div class="card-header">Nueva obra</div>
       <div class="card-body">
@@ -604,7 +605,7 @@
 
 <script>
 let movimientos = [], clientes = [], obras = [];
-let retiros = [], jornales = [];
+let retiros = [], jornales = [], presupuestos = [];
 let nextRetiroId = 1, nextJornalId = 1;
 let nextMovId = 1, nextCliId = 1, nextObraId = 1;
 const INGRESOS = ['ingreso','deposito','cobro'];
@@ -629,7 +630,7 @@ function showTab(t){
   if(t==='caja'){renderMovimientos();renderBanner();}
   if(t==='planilla')renderPlanilla();
   if(t==='clientes')renderClientes();
-  if(t==='obras')renderObras();
+  if(t==='obras'){renderObras();renderPresupuestos();}
   if(t==='retiros')renderRetiros();
   if(t==='jornales')renderJornales();
   if(t==='cuentas')renderCCNav();
@@ -853,6 +854,32 @@ function obraCard(o, clickable){
     </div>`:''}
     ${clickable?`<div style="margin-top:10px;font-size:12px;color:var(--brand-dark);font-weight:500">Ver cuenta corriente →</div>`:''}
   </div>`;
+}
+
+function renderPresupuestos(){
+  const wrap=document.getElementById('presus-pendientes');
+  if(!wrap)return;
+  const pend=(presupuestos||[]).filter(p=>p.estado==='pendiente');
+  if(!pend.length){wrap.innerHTML='';return;}
+  const grupos={};
+  pend.forEach(p=>{const k=p.clienteNombre||'(sin cliente)';(grupos[k]=grupos[k]||[]).push(p);});
+  let html='<div class="card" style="margin-bottom:16px;border:1px solid var(--amber)"><div class="card-header" style="color:var(--amber)">Presupuestos pendientes de confirmar ('+pend.length+')</div><div class="card-body">';
+  Object.keys(grupos).sort().forEach(cli=>{
+    html+='<div style="margin-bottom:14px"><div class="section-label"><div class="avatar">'+initials(cli)+'</div>'+cli+'</div>';
+    grupos[cli].forEach(p=>{
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:8px;margin-top:8px;flex-wrap:wrap">'+
+        '<div style="min-width:0;flex:1"><div style="font-weight:500;font-size:13px">'+p.obra+'</div>'+
+        '<div style="font-size:11px;color:var(--text3)">'+fmtDate(p.fecha)+'</div></div>'+
+        '<div style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--blue);font-size:13px">'+fmt(p.valor)+'</div>'+
+        '<div style="display:flex;gap:6px">'+
+          '<button class="btn sm purple" onclick="confirmarPresupuesto(\''+p.id+'\')">✓ Confirmar</button>'+
+          '<button class="btn sm danger" onclick="eliminarPresupuesto(\''+p.id+'\')">✕</button>'+
+        '</div></div>';
+    });
+    html+='</div>';
+  });
+  html+='</div></div>';
+  wrap.innerHTML=html;
 }
 
 function renderObras(){
@@ -1266,6 +1293,12 @@ window.addEventListener('load', function(){
     listo.jor = true; check();
   }, function(err){ toast('Error cargando jornales: '+err.message, false); });
 
+  db.collection('presupuestos').onSnapshot(function(snap){
+    presupuestos = snap.docs.map(function(d){return d.data();});
+    presupuestos.sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+    renderPresupuestos();
+  }, function(err){ console.log('presupuestos:', err.message); });
+
   // IMPORTANTE: No hacemos push local. Solo guardamos en Firebase.
   // onSnapshot se encarga de actualizar los arrays locales automaticamente.
 
@@ -1348,6 +1381,34 @@ window.addEventListener('load', function(){
     if(!nuevo){alert('El nombre no puede quedar vacío.');return;}
     db.collection('obras').doc(String(id)).set({nombre:nuevo},{merge:true})
       .then(function(){toast('Nombre actualizado');})
+      .catch(function(e){toast('Error: '+e.message,false);});
+  };
+
+  window.confirmarPresupuesto = function(id){
+    var p=presupuestos.find(function(x){return x.id==id;});
+    if(!p){toast('Presupuesto no encontrado',false);return;}
+    if(!confirm('¿Confirmar el presupuesto de "'+p.clienteNombre+'"?\n\nSe va a crear la obra "'+p.obra+'" con valor '+fmt(p.valor)+'.'))return;
+    var cli=null;
+    if(p.clienteId)cli=clientes.find(function(c){return c.id==p.clienteId;});
+    if(!cli)cli=clientes.find(function(c){return c.nombre&&c.nombre.trim().toLowerCase()===(p.clienteNombre||'').trim().toLowerCase();});
+    var cliId, pre=Promise.resolve();
+    if(cli){cliId=cli.id;}
+    else{
+      cliId=uid();
+      pre=db.collection('clientes').doc(cliId).set({id:cliId,nombre:p.clienteNombre||'(sin nombre)',cuit:'',tel:'',email:'',notas:'Creado al confirmar presupuesto'});
+    }
+    pre.then(function(){
+      var obraId=uid();
+      return db.collection('obras').doc(obraId).set({id:obraId,nombre:p.obra,clienteId:cliId,valor:p.valor,inicio:p.fecha||'',estado:'activa',notas:'Confirmada desde Presupuesto'})
+        .then(function(){return db.collection('presupuestos').doc(String(id)).set({estado:'confirmado',obraId:obraId},{merge:true});});
+    }).then(function(){toast('Obra creada desde el presupuesto');})
+      .catch(function(e){toast('Error: '+e.message,false);});
+  };
+
+  window.eliminarPresupuesto = function(id){
+    if(!confirm('¿Eliminar este presupuesto pendiente?'))return;
+    db.collection('presupuestos').doc(String(id)).delete()
+      .then(function(){toast('Presupuesto eliminado');})
       .catch(function(e){toast('Error: '+e.message,false);});
   };
 
